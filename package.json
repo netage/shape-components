@@ -1,0 +1,24 @@
+{
+  "name": "shape-components",
+  "version": "0.0.1",
+  "description": "WebComponent uising W3C SHACL to define wrap UI elements",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "bart@netage.nl",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "rdf-ext": "^1.0.0",
+    "rdf-fetch": "^0.3.3",
+    "rdf-fetch-lite": "git://github.com/rdf-ext/rdf-fetch-lite.git",
+    "rdf-parser-jsonld": "^1.1.0",
+    "rdf-parser-n3": "^1.1.1",
+    "rdf-serializer-jsonld": "^1.0.0",
+    "rdf-serializer-jsonld-ext": "^1.0.0",
+    "readable-stream": "^2.2.9",
+    "string-to-stream": "^1.1.0",
+    "x-tag": "^1.5.11",
+    "zepto": "^1.2.0"
+  }
+}
