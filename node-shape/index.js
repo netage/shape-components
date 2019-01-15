@@ -3,6 +3,7 @@ var $ = require('zepto');
 var rdf = require('rdf-ext');
 var prefixMap = require('../prefixmap');
 
+
 module.exports = xtag.register('node-shape', {
 	// content : require('./template.html'),
 	lifecycle : {

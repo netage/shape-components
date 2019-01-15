@@ -16,7 +16,9 @@ module.exports = xtag.register('property-shape', {
 		inserted : function() {
 		},
 		created : function() {
+			this.renderRoot = this;
 			this._original = $(this).children().clone(true,true);
+			this._sortdir =1 ;
 			if($(this).children().length > 1)
 			{
 				console.log("multiple children not supported ( tip put multiple elements in a DIV )");
@@ -49,6 +51,19 @@ module.exports = xtag.register('property-shape', {
 			get: function()
 			{
 				return this._sort
+			}
+		},
+		sortdirection: {
+			attribute:{},
+			set: function(val) {
+				if(val.toUpperCase() == "DESC")
+					this._sortdir = -1
+				else 
+					this._sortdir = 1
+			},
+			get: function()
+			{
+				return this._sortdir
 			}
 		},
 		sortpath: {
@@ -147,8 +162,8 @@ module.exports = xtag.register('property-shape', {
 											{formats: formats}).then((res) => {
 												if(res.status >= 200 && res.status < 300)
 													return res.dataset()
-												else
-													return null;
+												//else
+													//return null;
 										}).then((dataset) => {
 											if(dataset == null)
 												return ({ type:"node",targetID: targetID, dataset:null,resource:object.value});
@@ -162,10 +177,10 @@ module.exports = xtag.register('property-shape', {
 											}
 											graph = graph.merge(dataset);
 											return ({ type:"node",targetID: targetID, dataset:graph,resource:object.value,value:value});
-								}).catch((err) => {
-										  console.log(err.message)
-										  return null
-								}));
+										}).catch((err) => {
+										  //console.log(err.message)
+										  //return null
+										}));
 							}
 						else
 							{
@@ -186,9 +201,21 @@ module.exports = xtag.register('property-shape', {
 			},this);
 			
 			Promise.all(workList).then(values => {
-				
-				if(this.hasOwnProperty('_sort'))
-					values.sort(function(a,b) {return (a.value > b.value) ? 1 : ((b.value > a.value) ? -1 : 0);})
+				// cleanup values undefined happens when there are errors retrieving the resource
+				// @todo how do we handle these ?
+				let vcount = values.length -1;
+				while(vcount >= 0){
+					if(typeof values[vcount] == 'undefined')
+						values.splice(vcount,1)
+					vcount -= 1;
+				}
+				if(this.hasOwnProperty('_sort')){
+					if(this._sortdir == -1)
+						values.sort(function(a,b) {return (a.value < b.value) ? 1 : ((b.value < a.value) ? -1 : 0);})
+					else
+						values.sort(function(a,b) {return (a.value > b.value) ? 1 : ((b.value > a.value) ? -1 : 0);})
+						
+				}
 				// still need to only add none null datasets.
 				values.forEach(function(item,index){
 				if(item.hasOwnProperty('dataset') && item.dataset == null)
