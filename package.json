@@ -1,6 +1,6 @@
 {
   "name": "shape-components",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "description": "WebComponent uising W3C SHACL to define wrap UI elements",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,10 @@
     "rdf-serializer-jsonld-ext": "^1.4.0",
     "readable-stream": "^3.1.1",
     "string-to-stream": "^1.1.1",
-    "x-tag": "^2.0.1-beta",
+    "lit-element": "",
     "zepto": "^1.2.0"
+  },
+  "dependencies": {
+    "webpack-zepto": "0.0.1"
   }
 }
