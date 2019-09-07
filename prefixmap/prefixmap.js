@@ -1,9 +1,9 @@
-var rdf = require('rdf-ext');
+var rdf = require('rdf-ext')
 
-const prefixes = rdf.prefixMap();
+const prefixes = rdf.prefixMap()
 
-var loadedPref = require('assets/prefixmap.json');
+var loadedPref = require('assets/prefixmap.json')
 
-prefixes.addAll(loadedPref);
+prefixes.addAll(loadedPref)
 
-module.exports = prefixes;
+module.exports = prefixes

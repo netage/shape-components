@@ -1,131 +1,121 @@
 // Import LitElement base class and html helper function
-const {LitElement,html} = require('lit-element');
-const prefixes = require('../prefixmap');
-const rdf = require('rdf-ext');
-const $ = require('zepto');
+const { LitElement } = require('lit-element')
+const prefixes = require('../prefixmap')
+const rdf = require('rdf-ext')
+const $ = require('zepto')
 
 export class NodeShape extends LitElement {
   /**
-   * Define properties. Properties defined here will be automatically 
+   * Define properties. Properties defined here will be automatically
    * observed.
    */
-  static get properties() {
+  static get properties () {
     return {
-      targetClass: { type: String,  attribute: 'target-class' },
+      targetClass: { type: String, attribute: 'target-class' },
       dataGraph: { type: Object,
-      													reflect:false,
-      													attribute:false},
-    };
+        reflect: false,
+        attribute: false }
+    }
   }
 
-  /**  
+  /**
    * In the element constructor, assign default property values.
    */
-  constructor() {
+  constructor () {
     // Must call superconstructor first.
-    super();
+    super()
 
     // Initialize properties
-    this.loadComplete = false;
-    //this.targetClass = null;
-    //this.dataGraph = null;
-    
+    this.loadComplete = false
+    // this.targetClass = null;
+    // this.dataGraph = null;
   }
   // we don't want
-  createRenderRoot() {
-    return this;
+  createRenderRoot () {
+    return this
   }
-  
-		set targetClass(val)
-		{
-				let mapping = prefixes.resolve(val)
-				var classURI;
-				if (mapping != null)
-					classURI = mapping.toString();
-				else
-					classURI = val;
 
-				this._class = classURI;
-		}  
+  set targetClass (val) {
+    let mapping = prefixes.resolve(val)
+    var classURI
+    if (mapping != null) { classURI = mapping.toString() } else { classURI = val }
 
-		get targetClass(){
-				return this._class;		
-		}
-  
-  set dataGraph(value) {
-			console.log("setting graph:" + value);  
-			this._dataGraph = value;
-			this.loadGraph();
+    this._class = classURI
   }
-  
-  get dataGraph() {
-  	return this._dataGraph;
+
+  get targetClass () {
+    return this._class
   }
-  
-  
-  updated(changedProperties){
-			console.log(changedProperties);  
+
+  set dataGraph (value) {
+    this._dataGraph = value
+    if (value == null) { this.cleanGraph() } else { this.loadGraph() }
   }
-  
-  loadGraph(){
-			let graph = 			this._dataGraph.graph;
-			let resourceList = graph.match(null, null,
-					rdf.namedNode(this.targetClass)).toArray();
-			
-			if (resourceList.length > 0) {
 
-				let resource = resourceList.shift().subject.value
+  get dataGraph () {
+    return this._dataGraph
+  }
 
-				// here we should call all our closestDescendent node-tag
-				// elements
-				this.closestDescendant(this,'property-shape', true).each(
-						function(i) {
-							this.dataGraph= {graph:graph, resource: resource};
-								
-							});
-			}
-		}
-  
-  closestDescendant(element,selector, findAll) {
+  loadGraph () {
+    let graph = this._dataGraph.graph
+    let resourceList = graph.match(null, null,
+      rdf.namedNode(this.targetClass)).toArray()
 
+    if (resourceList.length > 0) {
+      let resource = resourceList.shift().subject.value
+
+      // here we should call all our closestDescendent node-tag
+      // elements
+      this.closestDescendant(this, 'property-shape', true).each(
+        function (i) {
+          this.dataGraph = { graph: graph, resource: resource }
+        })
+    }
+  }
+
+  cleanGraph (e) {
+    this.closestDescendant(this, 'property-shape', true)
+      .each(function (i) {
+        this.cleanGraph()
+      })
+  }
+
+  closestDescendant (element, selector, findAll) {
     if (!selector || selector === '') {
-        return $();
+      return $()
     }
 
-    findAll = findAll ? true : false;
+    findAll = !!findAll
 
-    var resultSet = $();
-    
-    $(element).each(function() {
+    var resultSet = $()
 
-        var $this = $(this);
+    $(element).each(function () {
+      var $this = $(this)
 
-        // breadth first search for every matched node,
-        // go deeper, until a child was found in the current subtree or the leave was reached.
-        var queue = [];
-        queue.push($this);
-        while (queue.length > 0) {
-            var node = queue.shift();
-            var children = node.children();
-            for (var i = 0; i < children.length; ++i) {
-                var $child = $(children[i]);
-                if ($child.is(selector)) {
-                    resultSet.push($child[0]); //well, we found one
-                    if (!findAll) {
-                        return false; //stop processing
-                    }
-                } else {
-                    queue.push($child); //go deeper
-                }
+      // breadth first search for every matched node,
+      // go deeper, until a child was found in the current subtree or the leave was reached.
+      var queue = []
+      queue.push($this)
+      while (queue.length > 0) {
+        var node = queue.shift()
+        var children = node.children()
+        for (var i = 0; i < children.length; ++i) {
+          var $child = $(children[i])
+          if ($child.is(selector)) {
+            resultSet.push($child[0]) // well, we found one
+            if (!findAll) {
+              return false // stop processing
             }
+          } else {
+            queue.push($child) // go deeper
+          }
         }
-    });
+      }
+    })
 
-    return resultSet;
+    return resultSet
+  }
 }
-
-}
-
 
 // Register the element with the browser
-customElements.define('node-shape', NodeShape);
+window.customElements.define('node-shape', NodeShape)
