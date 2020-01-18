@@ -1,6 +1,7 @@
 // Import LitElement base class and html helper function
 const { LitElement } = require('lit-element')
 const prefixes = require('../prefixmap')
+const cf = require('clownface')
 const rdf = require('rdf-ext')
 const $ = require('zepto')
 
@@ -30,12 +31,14 @@ export class NodeShape extends LitElement {
     // this.targetClass = null;
     // this.dataGraph = null;
   }
-  // we don't want
+  // we don't want shadow dom
   createRenderRoot () {
     return this
   }
 
   set targetClass (val) {
+    // check if the mapping is actually a abbreviation
+    // @TODO lets do this with a proper check first on a colon
     let mapping = prefixes.resolve(val)
     var classURI
     if (mapping != null) { classURI = mapping.toString() } else { classURI = val }
@@ -47,6 +50,7 @@ export class NodeShape extends LitElement {
     return this._class
   }
 
+  // set the location of the graph, if null it means that the graph needs to be cleaned
   set dataGraph (value) {
     this._dataGraph = value
     if (value == null) { this.cleanGraph() } else { this.loadGraph() }
