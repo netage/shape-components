@@ -22,6 +22,7 @@ export class PropertyShape extends LitElement {
       sortpath: { type: String },
       refresh: { type: Number },
       hideempty: { type: Boolean },
+      singleton: { type: Boolean },
       ldnstyle: { type: String,attribute: 'ldn-style'},
       bindto: { type: String, attribute: 'bind-to' },
       dataGraph: { type: Object,
@@ -45,6 +46,7 @@ export class PropertyShape extends LitElement {
       return
     }
     this._bind = null
+    this._singleton = false;
     this._workNode = $(this)
     this._loadedIDs = []
     this._sort = false
@@ -96,6 +98,14 @@ export class PropertyShape extends LitElement {
 
   get sort () {
     return this._sort
+  }
+
+  set singleton (val) {
+    this._singleton = val
+  }
+
+  get singleton() {
+    return this._singleton
   }
 
   set sortdirection (val) {
@@ -220,7 +230,8 @@ export class PropertyShape extends LitElement {
   */
   refreshGraph () {
     //console.log('in graph refresh')
-    this.cleanGraph()
+    if(!this._singleton)
+      this.cleanGraph()
     this.loadGraph()
     setTimeout(this.refreshGraph.bind(this), this.__refresh * 1000)
   }
@@ -234,6 +245,9 @@ export class PropertyShape extends LitElement {
     */
   addNode (nodeID,index){
     let targetNode
+    if(this._singleton){
+    $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
+    }
     if (index === 0) { 
       $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
      } else {
@@ -390,6 +404,8 @@ export class PropertyShape extends LitElement {
   }
 
   cleanGraph (e) {
+    if(this._singleton)
+      return
     this._loadedIDs.forEach(function (element) {
       $('#' + element).remove()
     })
