@@ -1,8 +1,8 @@
-var rdf = require('rdf-ext')
+const rdf = require('rdf-ext')
 
 const prefixes = rdf.prefixMap()
 
-var loadedPref = require('assets/prefixmap.json')
+const loadedPref = require('assets/prefixmap.json')
 
 prefixes.addAll(loadedPref)
 

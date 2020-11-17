@@ -13,9 +13,11 @@ export class NodeShape extends LitElement {
   static get properties () {
     return {
       targetClass: { type: String, attribute: 'target-class' },
-      dataGraph: { type: Object,
+      dataGraph: {
+        type: Object,
         reflect: false,
-        attribute: false }
+        attribute: false
+      }
     }
   }
 
@@ -31,6 +33,7 @@ export class NodeShape extends LitElement {
     // this.targetClass = null;
     // this.dataGraph = null;
   }
+
   // we don't want shadow dom
   createRenderRoot () {
     return this
@@ -39,8 +42,8 @@ export class NodeShape extends LitElement {
   set targetClass (val) {
     // check if the mapping is actually a abbreviation
     // @TODO lets do this with a proper check first on a colon
-    let mapping = prefixes.resolve(val)
-    var classURI
+    const mapping = prefixes.resolve(val)
+    let classURI
     if (mapping != null) { classURI = mapping.toString() } else { classURI = val }
 
     this._class = classURI
@@ -61,13 +64,13 @@ export class NodeShape extends LitElement {
   }
 
   loadGraph () {
-    let graph = this._dataGraph.graph
-    let resourceList = graph.match(null, null,
+    const graph = this._dataGraph.graph
+    const resourceList = graph.match(null, null,
       rdf.namedNode(this.targetClass)).toArray()
 
     if (resourceList.length > 0) {
-      let resource = resourceList.shift().subject.value
-
+      this._resource = resourceList.shift().subject.value
+      const resource = this._resource
       // here we should call all our closestDescendent node-tag
       // elements
       this.closestDescendant(this, 'property-shape', true).each(
@@ -75,6 +78,17 @@ export class NodeShape extends LitElement {
           this.dataGraph = { graph: graph, resource: resource }
         })
     }
+  }
+
+  // retrieve the contents of the graph again.
+  getGraph () {
+    //
+    const output = cf({ dataset: rdf.dataset() })
+    this.closestDescendant(this, 'property-shape', true)
+      .each(function (i) {
+        output.dataset.addAll(this.getGraph())
+      })
+    return output.dataset
   }
 
   cleanGraph (e) {
@@ -91,20 +105,20 @@ export class NodeShape extends LitElement {
 
     findAll = !!findAll
 
-    var resultSet = $()
+    const resultSet = $()
 
     $(element).each(function () {
-      var $this = $(this)
+      const $this = $(this)
 
       // breadth first search for every matched node,
       // go deeper, until a child was found in the current subtree or the leave was reached.
-      var queue = []
+      const queue = []
       queue.push($this)
       while (queue.length > 0) {
-        var node = queue.shift()
-        var children = node.children()
-        for (var i = 0; i < children.length; ++i) {
-          var $child = $(children[i])
+        const node = queue.shift()
+        const children = node.children()
+        for (let i = 0; i < children.length; ++i) {
+          const $child = $(children[i])
           if ($child.is(selector)) {
             resultSet.push($child[0]) // well, we found one
             if (!findAll) {

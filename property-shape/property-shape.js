@@ -1,10 +1,9 @@
 const { LitElement } = require('lit-element')
 const $ = require('zepto')
 const rdf = require('rdf-ext')
-const rdfFetch = require('rdf-fetch')
-const N3Parser = require('rdf-parser-n3')
-const JsonLdParser = require('rdf-parser-jsonld')
+const rdfFetch = require('@rdfjs/fetch')
 const prefixMap = require('../prefixmap')
+const cf = require('clownface')
 
 function uniqID () {
   return 'ld-' + Math.random().toString(36).substr(2, 16)
@@ -23,11 +22,13 @@ export class PropertyShape extends LitElement {
       refresh: { type: Number },
       hideempty: { type: Boolean },
       singleton: { type: Boolean },
-      ldnstyle: { type: String,attribute: 'ldn-style'},
+      ldnstyle: { type: String, attribute: 'ldn-style' },
       bindto: { type: String, attribute: 'bind-to' },
-      dataGraph: { type: Object,
+      dataGraph: {
+        type: Object,
         reflect: false,
-        attribute: false }
+        attribute: false
+      }
     }
   }
 
@@ -46,10 +47,11 @@ export class PropertyShape extends LitElement {
       return
     }
     this._bind = null
-    this._singleton = false;
+    this._singleton = false
     this._workNode = $(this)
     this._loadedIDs = []
     this._sort = false
+    this._dataGraph = null
   }
 
   createRenderRoot () {
@@ -61,7 +63,7 @@ export class PropertyShape extends LitElement {
    */
   set path (val) {
     // store full URI
-    let mapping = prefixMap.resolve(val)
+    const mapping = prefixMap.resolve(val)
     if (mapping != null) { this._pred = mapping.toString() } else { this._pred = val }
   }
 
@@ -72,8 +74,8 @@ export class PropertyShape extends LitElement {
   set targetClass (val) {
     // check if the mapping is actually a abbreviation
     // @TODO lets do this with a proper check first on a colon
-    let mapping = prefixMap.resolve(val)
-    var classURI
+    const mapping = prefixMap.resolve(val)
+    let classURI
     if (mapping != null) { classURI = mapping.toString() } else { classURI = val }
 
     this._class = classURI
@@ -104,7 +106,7 @@ export class PropertyShape extends LitElement {
     this._singleton = val
   }
 
-  get singleton() {
+  get singleton () {
     return this._singleton
   }
 
@@ -118,9 +120,10 @@ export class PropertyShape extends LitElement {
 
   set sortpath (val) {
     // store full URI
-    let mapping = prefixMap.resolve(val)
+    const mapping = prefixMap.resolve(val)
     if (mapping != null) { this._sortpath = mapping.toString() } else { this._sortpath = val }
   }
+
   get sortpath () {
     return this._sortpath
   }
@@ -161,59 +164,50 @@ export class PropertyShape extends LitElement {
       setTimeout(this.refreshGraph.bind(this), this.__refresh * 1000)
     }
 
-    if(this.__inbox && this.ldnenabled)
-    {
-        setTimeout(this.processInbox.bind(this), 5000);
-        //setTimeout(this.cleanGraph.bind(this),20000)
-        setTimeout(this.processInbox.bind(this), 10000);
-
+    if (this.__inbox && this.ldnenabled) {
+      setTimeout(this.processInbox.bind(this), 5000)
+      // setTimeout(this.cleanGraph.bind(this),20000)
+      setTimeout(this.processInbox.bind(this), 10000)
     }
   }
 
-  processInbox(){
-    let formats = {
-      parsers: new rdf.Parsers({
-        'application/ld+json': JsonLdParser,
-        'text/turtle': N3Parser
-      })
-    }
+  processInbox () {
     console.log(' need to work on inbox:' + this.__inbox)
     rdfFetch(this.__inbox,
-    { formats: formats }).then((res) => {
+      { factory: rdf }).then((res) => {
       return res.dataset()
-  }).then((dataset) => {
-    console.log("fetched inbox");
-    if(this.__ldnstyle)
-      $(this).children().removeClass(this.__ldnstyle)
-    let inboxItems = dataset.match(rdf.namedNode(this.__inbox), rdf.namedNode('http://www.w3.org/ns/ldp#contains'))
-    var self = this
-    inboxItems.forEach(function(item){
-      let targetID = uniqID()
-     let targetNode = self.addNode(targetID,0)
-     if(self.__ldnstyle)
-      targetNode.addClass(self.__ldnstyle)
+    }).then((dataset) => {
+      console.log('fetched inbox')
+      if (this.__ldnstyle) {
+        $(this).children().removeClass(this.__ldnstyle)
+      }
+      const inboxItems = dataset.match(rdf.namedNode(this.__inbox), rdf.namedNode('http://www.w3.org/ns/ldp#contains'))
+      const self = this
+      inboxItems.forEach(function (item) {
+        const targetID = uniqID()
+        const targetNode = self.addNode(targetID, 0)
+        if (self.__ldnstyle) {
+          targetNode.addClass(self.__ldnstyle)
+        }
 
-      // now load the item URI and propagate it to the new node
-      rdfFetch(item.object.value,
-        { formats: formats }).then((res) => {
+        // now load the item URI and propagate it to the new node
+        rdfFetch(item.object.value,
+          { factory: rdf }).then((res) => {
           return res.dataset()
         }).then((dataset) => {
           // now lets see if we can load it.
           console.log('loaded inbox item')
           self.closestDescendant(self, 'property-shape#' + targetID + ', #' + targetID + ' property-shape', true)
-                  .each(function (i) {
-                    this.dataGraph = { graph: dataset, resource: item.object.value } // just put item
-                  })
+            .each(function (i) {
+              this.dataGraph = { graph: dataset, resource: item.object.value } // just put item
+            })
         }).catch((err) => {
           console.error(err.message)
         })
-    },this)
-    
-
-    
-  }).catch((err) => {
-    console.error(err.message)
-  })
+      }, this)
+    }).catch((err) => {
+      console.error(err.message)
+    })
   }
 
   // reload the graph
@@ -229,9 +223,10 @@ export class PropertyShape extends LitElement {
 
   */
   refreshGraph () {
-    //console.log('in graph refresh')
-    if(!this._singleton)
+    // console.log('in graph refresh')
+    if (!this._singleton) {
       this.cleanGraph()
+    }
     this.loadGraph()
     setTimeout(this.refreshGraph.bind(this), this.__refresh * 1000)
   }
@@ -240,37 +235,34 @@ export class PropertyShape extends LitElement {
    * Graph Functions
    */
 
-   /**
+  /**
     * this adds a node to the element
     */
-  addNode (nodeID,index){
+  addNode (nodeID, index) {
     let targetNode
-    if(this._singleton){
-    $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
-    }
-    if (index === 0) { 
+    if (this._singleton) {
       $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
-     } else {
+    }
+    if (index === 0) {
+      $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
+    } else {
       targetNode = this._original.clone().attr('data-ld', 'true').attr('id', nodeID)
-      if(this._sortdir == -1)
+      if (this._sortdir === -1) {
         $(this._workNode).prepend(targetNode)
-      else
+      } else {
         $(this._workNode).append(targetNode)
+      }
     }
     this._loadedIDs.push(nodeID)
     return targetNode
   }
 
-
   loadGraph () {
     let graph = this._dataGraph.graph
-    let uri = this._dataGraph.resource
-    let tripleList = graph.match(rdf.namedNode(uri), rdf.namedNode(this.path)).toArray()
+    const uri = this._dataGraph.resource
+    const tripleList = graph.match(rdf.namedNode(uri), rdf.namedNode(this.path)).toArray()
 
-    
-    
-
-    var workList = []
+    const workList = []
     // var targetNode;
     if (tripleList.length > 0) {
       if (this.__hideempty) {
@@ -279,43 +271,37 @@ export class PropertyShape extends LitElement {
 
       // Itterate over elements and fill the promise array.
       tripleList.forEach(function (element, index) {
-        let object = element.object
-        let targetID = uniqID()
+        const object = element.object
+        const targetID = uniqID()
 
         switch (object.termType) {
-          case 'NamedNode':
+          case 'NamedNode': {
             // check if we have the data in the store if not load it
-            let resourceList = graph.match(rdf.namedNode(object.value))
+            const resourceList = graph.match(rdf.namedNode(object.value))
               .toArray()
             if ((resourceList.length === 0 || this.__refresh) && object.value.indexOf('#') === -1) {
-              let formats = {
-                parsers: new rdf.Parsers({
-                  'application/ld+json': JsonLdParser,
-                  'text/turtle': N3Parser
-                })
-              }
               workList.push(rdfFetch(object.value,
-                { formats: formats }).then((res) => {
+                { factory: rdf }).then((res) => {
                 if (res.status >= 200 && res.status < 300) { return res.dataset() }
                 return ({ type: 'node', targetID: targetID, dataset: null, resource: object.value })
               }, function () { console.log('failed fetch of: ' + object.value) }).then((dataset) => {
                 if (dataset == null) { return ({ type: 'node', targetID: targetID, dataset: null, resource: object.value }) }
                 // check for sort property and
                 // extract value
-                var value = null
-                if (this.hasOwnProperty('_sortpath')) {
+                let value = null
+                if (Object.prototype.hasOwnProperty.call(this, '_sortpath')) {
                   value = dataset.match(rdf.namedNode(object.value), rdf.namedNode(this._sortpath))
                     .toArray().shift().object.value
                   this._sort = true
                 }
-                if (dataset.hasOwnProperty('_datasetFactory')) {
+                if (Object.prototype.hasOwnProperty.call(dataset, '_factory')) {
                   graph = graph.merge(dataset)
                 }
                 return ({ type: 'node', targetID: targetID, dataset: graph, resource: object.value, value: value })
               }))
             } else {
-              var value = null
-              if (this.hasOwnProperty('_sortpath')) {
+              let value = null
+              if (Object.prototype.hasOwnProperty.call(hasOwnProperty, '_sortpath')) {
                 value = graph.match(rdf.namedNode(object.value), rdf.namedNode(this._sortpath))
                   .toArray().shift().object.value
                 this._sort = true
@@ -323,6 +309,7 @@ export class PropertyShape extends LitElement {
               workList.push(Promise.resolve({ type: 'node', targetID: targetID, dataset: graph, resource: object.value, value: value }))
             }
             break
+          }
           case 'Literal':
           default:
             workList.push(Promise.resolve({ type: 'literal', targetID: targetID, value: object.value }))
@@ -335,39 +322,39 @@ export class PropertyShape extends LitElement {
         // @todo how do we handle these ?
         let vcount = values.length - 1
         while (vcount >= 0) {
-          if (typeof values[vcount] === 'undefined') { values.splice(vcount, 1) }
-          else if( typeof values[vcount].dataset !== 'undefined' & values[vcount].dataset !=null)
-          {
+          if (typeof values[vcount] === 'undefined') { values.splice(vcount, 1) } else if (typeof values[vcount].dataset !== 'undefined' & values[vcount].dataset != null) {
             // is the resource available in the dataset at all?
-            let list = values[vcount].dataset.match(rdf.namedNode(values[vcount].resource))
-            if(list.length==0)
+            const list = values[vcount].dataset.match(rdf.namedNode(values[vcount].resource))
+            if (list.length === 0) {
               values.splice(vcount, 1)
+            }
           }
           vcount -= 1
         }
 
-        if(this._sort)
+        if (this._sort) {
           values.sort(function (a, b) { return (a.value > b.value) ? 1 : ((b.value > a.value) ? -1 : 0) })
+        }
 
         values.forEach(function (item, index) {
-          if (item.hasOwnProperty('dataset') && item.dataset == null) { return }
+          if (Object.prototype.hasOwnProperty.call(item, 'dataset') && item.dataset == null) { return }
 
           switch (item.type) {
             case 'node':
               if (item.dataset != null) {
                 // check if we have a target class, then match it on the resource, if the classlist is empty return
-                if(this.hasOwnProperty('_class')){
+                if (Object.prototype.hasOwnProperty.call(this, '_class')) {
                   let classList = []
-                  classList = graph.match(rdf.namedNode(item.resource),rdf.namedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),rdf.namedNode(this._class))
+                  classList = graph.match(rdf.namedNode(item.resource), rdf.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), rdf.namedNode(this._class))
                   // if no match target class is missing, so returnl
-                  if(classList.length == 0) { 
+                  if (classList.length === 0) {
                     if (this.__hideempty) {
                       $(this._workNode).hide()
                     }
-                    return  
+                    return
                   }
                 }
-                this.addNode(item.targetID,index)
+                this.addNode(item.targetID, index)
                 this.closestDescendant(this, 'property-shape#' + item.targetID + ', #' + item.targetID + ' property-shape', true)
                   .each(function (i) {
                     this.dataGraph = { graph: item.dataset, resource: item.resource } // just put item
@@ -375,14 +362,14 @@ export class PropertyShape extends LitElement {
               }
               break
             case 'literal':
-              if (this.__hideempty & item.value=='') {
+              if (this.__hideempty & item.value === '') {
                 $(this._workNode).hide()
-              }
-              else {
-                this.addNode(item.targetID,index)
-                if(this.__hideempty)
+              } else {
+                this.addNode(item.targetID, index)
+                if (this.__hideempty) {
                   $(this._workNode).show()
-                if (this.hasOwnProperty('_bind') && this._bind != null) {
+                }
+                if (Object.prototype.hasOwnProperty.call(this, '_bind') && this._bind != null) {
                   let itemNode
                   if (this._bind.indexOf('.') !== 0) {
                     itemNode = $(this._workNode).children(this._bind + '#' + item.targetID + ', #' + item.targetID + ' ' + this._bind)
@@ -390,9 +377,9 @@ export class PropertyShape extends LitElement {
                     itemNode = $(this._workNode).children('#' + item.targetID + this._bind + ', #' + item.targetID + ' ' + this._bind)
                   }
 
-                  if (this.hasOwnProperty('_attr')) { $(itemNode).attr(this._attr, item.value) } else { $(itemNode).text(item.value) }
+                  if (Object.prototype.hasOwnProperty.call(this, '_attr')) { $(itemNode).attr(this._attr, item.value) } else { $(itemNode).text(item.value) }
                 } else {
-                  let newNode = $('<span>').attr('id', item.targetID).text(item.value)
+                  const newNode = $('<span>').attr('id', item.targetID).text(item.value)
                   $(this).append(newNode)
                 }
               }
@@ -403,9 +390,30 @@ export class PropertyShape extends LitElement {
     }
   }
 
+  getGraph () {
+    const output = cf({ dataset: rdf.dataset() })
+    if (this._dataGraph) {
+      const test = output.node(output.namedNode(this._dataGraph.resource))
+      // use temp value
+      console.log(this._loadedIDs)
+      this._loadedIDs.forEach(element => {
+        const val = $('#' + element).html()
+        test.addOut(output.namedNode(this.path), val)
+      })
+    } else {
+      const test = output.node(rdf.namedNode(''))
+
+      const val = $(this).first().html()
+      test.addOut(output.namedNode(this.path), val)
+    }
+
+    return output.dataset
+  }
+
   cleanGraph (e) {
-    if(this._singleton)
+    if (this._singleton) {
       return
+    }
     this._loadedIDs.forEach(function (element) {
       $('#' + element).remove()
     })
@@ -415,9 +423,9 @@ export class PropertyShape extends LitElement {
       .each(function (i) {
         this.cleanGraph()
       })
-    // why is this working ... 
+    // why is this working ...
     if (this._loadedIDs.length > 0) {
-      let targetNode = this._original.clone()
+      const targetNode = this._original.clone()
       $(this._workNode).append(targetNode)
     }
     if (this.__hideempty) {
@@ -435,21 +443,21 @@ export class PropertyShape extends LitElement {
 
     findAll = !!findAll
 
-    var resultSet = $()
+    const resultSet = $()
 
     $(element).each(function () {
-      var $this = $(this)
+      const $this = $(this)
 
       // breadth first search for every matched node,
       // go deeper, until a child was found in the current subtree or the
       // leave was reached.
-      var queue = []
+      const queue = []
       queue.push($this)
       while (queue.length > 0) {
-        var node = queue.shift()
-        var children = node.children()
-        for (var i = 0; i < children.length; ++i) {
-          var $child = $(children[i])
+        const node = queue.shift()
+        const children = node.children()
+        for (let i = 0; i < children.length; ++i) {
+          const $child = $(children[i])
           if ($child.is(selector)) {
             resultSet.push($child[0]) // well, we found one
             if (!findAll) {
