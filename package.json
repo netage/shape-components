@@ -1,6 +1,6 @@
 {
   "name": "@netage-dev/shape-components",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "WebComponent uising W3C SHACL to define wrap UI elements",
   "main": "index.js",
   "scripts": {
@@ -14,17 +14,15 @@
     "webpack-zepto": "0.0.1"
   },
   "dependencies": {
-    "@rdf-esm/formats-common": "^0.5.5",
-    "@rdfjs/fetch": "^2.1.0",
-    "@rdfjs/fetch-lite": "^2.1.0",
-    "@rdfjs/parser-jsonld": "^1.2.1",
+    "@rdfjs/fetch": "^3.0.0",
+    "@rdfjs/parser-jsonld": "^1.3.1",
     "@rdfjs/parser-n3": "^1.1.4",
     "@tpluscode/rdf-string": "^0.2.21",
     "@tpluscode/rdfine": "^0.5.15",
-    "clownface": "^0.12.0",
+    "clownface": "^1.5.1",
     "encoding": "^0.1.13",
     "lit-element": "",
-    "rdf-ext": "^1.3",
+    "rdf-ext": "^1.3.5",
     "stream-to-string": "^1.2.0"
   }
 }

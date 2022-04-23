@@ -1,6 +1,7 @@
+import rdfFetch from '@rdfjs/fetch'
 const { LitElement } = require('lit-element')
 const rdf = require('rdf-ext')
-const rdfFetch = require('@rdfjs/fetch')
+// const rdfFetch = require('@rdfjs/fetch')
 const prefixMap = require('../prefixmap/prefixmap.js')
 const cf = require('clownface')
 
@@ -236,7 +237,6 @@ export class PropertyShape extends LitElement {
 
   */
   refreshGraph () {
-    // console.log('in graph refresh')
     if (!this._singleton) {
       this.cleanGraph()
     }
@@ -304,7 +304,9 @@ export class PropertyShape extends LitElement {
             if ((resourceList.length === 0 || this.__refresh) && object.value.indexOf('#') === -1) {
               workList.push(rdfFetch(object.value,
                 { factory: rdf }).then((res) => {
-                if (res.status >= 200 && res.status < 300) { return res.dataset() }
+                if (res.status >= 200 && res.status < 300) {
+                  return res.dataset()
+                }
                 return ({ type: 'node', targetID: targetID, dataset: null, resource: object.value })
               }, function () { console.log('failed fetch of: ' + object.value) }).then((dataset) => {
                 if (dataset == null) { return ({ type: 'node', targetID: targetID, dataset: null, resource: object.value }) }
@@ -316,9 +318,9 @@ export class PropertyShape extends LitElement {
                     .toArray().shift().object.value
                   this._sort = true
                 }
-                if (Object.prototype.hasOwnProperty.call(dataset, '_factory')) {
-                  graph = graph.merge(dataset)
-                }
+                // this should have a check on dataset @todo
+                graph = graph.merge(dataset)
+
                 return ({ type: 'node', targetID: targetID, dataset: graph, resource: object.value, value: value })
               }))
             } else {
@@ -427,7 +429,6 @@ export class PropertyShape extends LitElement {
     if (this._dataGraph) {
       const newNode = output.node(output.namedNode(this._dataGraph.resource))
       // use temp value
-      // console.log(this._loadedIDs)
       this._loadedIDs.forEach(element => {
         let val
         if (this._attr && this._attr === 'value') {
