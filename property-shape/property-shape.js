@@ -256,7 +256,7 @@ export class PropertyShape extends LitElement {
     if (this._singleton) {
       const tmpNode = this._workNode.firstElementChild
       tmpNode.setAttribute('data-ld', 'true')
-      tmpNode.setAttribute('id', nodeID)
+      tmpNode.setAttribute('data-ldid', nodeID)
     }
     if (index === 0) {
       let tmpNode
@@ -267,12 +267,12 @@ export class PropertyShape extends LitElement {
       }
       if (tmpNode) {
         tmpNode.setAttribute('data-ld', 'true')
-        tmpNode.setAttribute('id', nodeID)
+        tmpNode.setAttribute('data-ldid', nodeID)
       }
     } else {
       targetNode = this._original.cloneNode(true)
       targetNode.setAttribute('data-ld', 'true')
-      targetNode.setAttribute('id', nodeID)
+      targetNode.setAttribute('data-ldid', nodeID)
       if (this._sortdir === -1) {
         this._workNode.insertBefore(targetNode, this._workNode.firstChild)
       } else {
@@ -380,7 +380,7 @@ export class PropertyShape extends LitElement {
                   }
                 }
                 this.addNode(item.targetID, index)
-                this.closestDescendant(this, 'property-shape#' + item.targetID + ', #' + item.targetID + ' property-shape', true)
+                this.closestDescendant(this, 'property-shape[data-ldid="' + item.targetID + '"], [data-ldid="' + item.targetID + '"] property-shape', true)
                   .forEach(function (el, i) {
                     el.dataGraph = { graph: item.dataset, resource: item.resource } // just put item
                   })
@@ -397,9 +397,9 @@ export class PropertyShape extends LitElement {
                 if (Object.prototype.hasOwnProperty.call(this, '_bind') && this._bind != null) {
                   let itemNodes
                   if (this._bind.indexOf('.') !== 0) {
-                    itemNodes = this._workNode.querySelectorAll(this._bind + '#' + item.targetID + ', #' + item.targetID + ' ' + this._bind)
+                    itemNodes = this._workNode.querySelectorAll(this._bind + '[data-ldid="' + item.targetID + '"], [data-ldid="' + item.targetID + '"] ' + this._bind)
                   } else {
-                    itemNodes = this._workNode.querySelectorAll('#' + item.targetID + this._bind + ', #' + item.targetID + ' ' + this._bind)
+                    itemNodes = this._workNode.querySelectorAll('[data-ldid="' + item.targetID + this._bind + '"], [data-ldid="' + item.targetID + '"] ' + this._bind)
                   }
 
                   if (Object.prototype.hasOwnProperty.call(this, '_attr')) {
@@ -412,7 +412,7 @@ export class PropertyShape extends LitElement {
                     })
                   }
                 } else {
-                  this.insertAdjacentHTML('afterbegin', '<span id="' + item.targetID + '">' + item.value + '</span>')
+                  this.insertAdjacentHTML('afterbegin', '<span data-ldid="' + item.targetID + '">' + item.value + '</span>')
                 }
               }
               break
@@ -431,11 +431,11 @@ export class PropertyShape extends LitElement {
       this._loadedIDs.forEach(element => {
         let val
         if (this._attr && this._attr === 'value') {
-          val = document.getElementById(element).value
+          val = document.querySelector('[data-ldid="' + element + '"]').value
         } else if (this._attr) {
-          val = document.getElementById(element).getAttribute(this._attr)
+          val = document.querySelector('[data-ldid="' + element + '"]').getAttribute(this._attr)
         } else {
-          val = document.getElementById(element).innerHTML
+          val = document.querySelector('[data-ldid="' + element + '"]').innerHTML
         }
 
         newNode.addOut(output.namedNode(this.path), val)
@@ -468,7 +468,7 @@ export class PropertyShape extends LitElement {
       return
     }
     this._loadedIDs.forEach(function (element) {
-      const workNode = document.getElementById(element)
+      const workNode = document.querySelector('[data-ldid="' + element + '"]')
       if (workNode !== null) {
         workNode.parentNode.removeChild(workNode)
       }
