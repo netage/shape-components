@@ -1,9 +1,8 @@
 // Import LitElement base class and html helper function
 const { LitElement } = require('lit-element')
-const prefixes = require('../prefixmap')
+const prefixes = require('../prefixmap/prefixmap.js')
 const cf = require('clownface')
 const rdf = require('rdf-ext')
-const $ = require('zepto')
 
 export class NodeShape extends LitElement {
   /**
@@ -73,64 +72,71 @@ export class NodeShape extends LitElement {
       const resource = this._resource
       // here we should call all our closestDescendent node-tag
       // elements
-      this.closestDescendant(this, 'property-shape', true).each(
-        function (i) {
-          this.dataGraph = { graph: graph, resource: resource }
+      this.closestDescendant(this, 'property-shape', true).forEach(
+        function (item, i) {
+          item.dataGraph = { graph: graph, resource: resource }
         })
     }
   }
 
   // retrieve the contents of the graph again.
-  getGraph () {
+  getGraph (resource) {
+    this._resource = resource || this._resource
     //
     const output = cf({ dataset: rdf.dataset() })
+    const classDS = cf({ dataset: rdf.dataset() })
     this.closestDescendant(this, 'property-shape', true)
-      .each(function (i) {
-        output.dataset.addAll(this.getGraph())
+      .forEach(function (item, i) {
+        output.dataset.addAll(item.getGraph())
       })
+
+    if (this._resource) {
+      classDS.node(classDS.namedNode(this._resource))
+        .addOut(classDS.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), classDS.namedNode(this._class))
+    } else {
+      classDS.node(classDS.namedNode(''))
+        .addOut(classDS.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), classDS.namedNode(this._class))
+    }
+
+    output.dataset.addAll(classDS.dataset)
     return output.dataset
   }
 
   cleanGraph (e) {
     this.closestDescendant(this, 'property-shape', true)
-      .each(function (i) {
-        this.cleanGraph()
+      .forEach(function (item, i) {
+        item.cleanGraph()
       })
   }
 
   closestDescendant (element, selector, findAll) {
     if (!selector || selector === '') {
-      return $()
+      return []
     }
 
     findAll = !!findAll
 
-    const resultSet = $()
+    const resultSet = []
 
-    $(element).each(function () {
-      const $this = $(this)
-
-      // breadth first search for every matched node,
-      // go deeper, until a child was found in the current subtree or the leave was reached.
-      const queue = []
-      queue.push($this)
-      while (queue.length > 0) {
-        const node = queue.shift()
-        const children = node.children()
-        for (let i = 0; i < children.length; ++i) {
-          const $child = $(children[i])
-          if ($child.is(selector)) {
-            resultSet.push($child[0]) // well, we found one
-            if (!findAll) {
-              return false // stop processing
-            }
-          } else {
-            queue.push($child) // go deeper
+    // breadth first search for every matched node,
+    // go deeper, until a child was found in the current subtree or the
+    // leave was reached.
+    const queue = []
+    queue.push(element)
+    while (queue.length > 0) {
+      const node = queue.shift()
+      for (let i = 0; i < node.children.length; ++i) {
+        const child = node.children[i]
+        if (child.matches(selector)) {
+          resultSet.push(child) // well, we found one
+          if (!findAll) {
+            return false // stop processing
           }
+        } else {
+          queue.push(child) // go deeper
         }
       }
-    })
-
+    }
     return resultSet
   }
 }

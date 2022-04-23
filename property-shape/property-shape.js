@@ -1,8 +1,7 @@
 const { LitElement } = require('lit-element')
-const $ = require('zepto')
 const rdf = require('rdf-ext')
 const rdfFetch = require('@rdfjs/fetch')
-const prefixMap = require('../prefixmap')
+const prefixMap = require('../prefixmap/prefixmap.js')
 const cf = require('clownface')
 
 function uniqID () {
@@ -42,13 +41,13 @@ export class PropertyShape extends LitElement {
     // this.renderRoot = this;
 
     this._sortdir = 1
-    if ($(this).children().length > 1) {
+    if (this.children.length > 1) {
       console.log('multiple children not supported ( tip put multiple elements in a DIV )')
       return
     }
     this._bind = null
     this._singleton = false
-    this._workNode = $(this)
+    this._workNode = this
     this._loadedIDs = []
     this._sort = false
     this._dataGraph = null
@@ -139,7 +138,7 @@ export class PropertyShape extends LitElement {
     let workBind = val
     if (val.substring(0, 3) === '../') {
       workBind = val.replace('../', '')
-      this._workNode = $(this).parent()
+      this._workNode = this.parentElement
     }
 
     let l, r
@@ -156,9 +155,21 @@ export class PropertyShape extends LitElement {
   }
 
   firstUpdated () {
-    this._original = $(this._workNode).children(this._bind).clone(true, true)
+    if (this._bind) {
+      const x = this._workNode.querySelectorAll(this._bind)
+      if (x.length > 0) {
+        this._original = x[0].cloneNode(true)
+      }
+    } else {
+      if (this._workNode.children.length > 0) {
+        this._original = this._workNode.children[0].cloneNode(true)
+      } else {
+        this._original = this._workNode.cloneNode(true)
+      }
+    }
+
     if (this.__hideempty) {
-      $(this._workNode).hide()
+      this._workNode.style.display = 'none'
     }
     if (this.__refresh) {
       setTimeout(this.refreshGraph.bind(this), this.__refresh * 1000)
@@ -179,7 +190,9 @@ export class PropertyShape extends LitElement {
     }).then((dataset) => {
       console.log('fetched inbox')
       if (this.__ldnstyle) {
-        $(this).children().removeClass(this.__ldnstyle)
+        this.children.forEach(function (el, i) {
+          el.classList.remove(this.__ldnstyle)
+        })
       }
       const inboxItems = dataset.match(rdf.namedNode(this.__inbox), rdf.namedNode('http://www.w3.org/ns/ldp#contains'))
       const self = this
@@ -198,8 +211,8 @@ export class PropertyShape extends LitElement {
           // now lets see if we can load it.
           console.log('loaded inbox item')
           self.closestDescendant(self, 'property-shape#' + targetID + ', #' + targetID + ' property-shape', true)
-            .each(function (i) {
-              this.dataGraph = { graph: dataset, resource: item.object.value } // just put item
+            .forEach(function (el, i) {
+              el.dataGraph = { graph: dataset, resource: item.object.value } // just put item
             })
         }).catch((err) => {
           console.error(err.message)
@@ -241,16 +254,29 @@ export class PropertyShape extends LitElement {
   addNode (nodeID, index) {
     let targetNode
     if (this._singleton) {
-      $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
+      const tmpNode = this._workNode.firstElementChild
+      tmpNode.setAttribute('data-ld', 'true')
+      tmpNode.setAttribute('id', nodeID)
     }
     if (index === 0) {
-      $(this._workNode).children(this._bind).first().attr('data-ld', 'true').attr('id', nodeID)
+      let tmpNode
+      if (this._bind) {
+        tmpNode = this._workNode.querySelectorAll(this._bind)[0]
+      } else if (this._workNode.children.length > 0) {
+        tmpNode = this._workNode.firstElementChild
+      }
+      if (tmpNode) {
+        tmpNode.setAttribute('data-ld', 'true')
+        tmpNode.setAttribute('id', nodeID)
+      }
     } else {
-      targetNode = this._original.clone().attr('data-ld', 'true').attr('id', nodeID)
+      targetNode = this._original.cloneNode(true)
+      targetNode.setAttribute('data-ld', 'true')
+      targetNode.setAttribute('id', nodeID)
       if (this._sortdir === -1) {
-        $(this._workNode).prepend(targetNode)
+        this._workNode.insertBefore(targetNode, this._workNode.firstChild)
       } else {
-        $(this._workNode).append(targetNode)
+        this._workNode.appendChild(targetNode)
       }
     }
     this._loadedIDs.push(nodeID)
@@ -265,10 +291,6 @@ export class PropertyShape extends LitElement {
     const workList = []
     // var targetNode;
     if (tripleList.length > 0) {
-      if (this.__hideempty) {
-        $(this._workNode).show()
-      }
-
       // Itterate over elements and fill the promise array.
       tripleList.forEach(function (element, index) {
         const object = element.object
@@ -341,6 +363,9 @@ export class PropertyShape extends LitElement {
 
           switch (item.type) {
             case 'node':
+              if (this.__hideempty) {
+                this._workNode.style.display = ''
+              }
               if (item.dataset != null) {
                 // check if we have a target class, then match it on the resource, if the classlist is empty return
                 if (Object.prototype.hasOwnProperty.call(this, '_class')) {
@@ -349,38 +374,45 @@ export class PropertyShape extends LitElement {
                   // if no match target class is missing, so returnl
                   if (classList.length === 0) {
                     if (this.__hideempty) {
-                      $(this._workNode).hide()
+                      this._workNode.style.display = 'none'
                     }
                     return
                   }
                 }
                 this.addNode(item.targetID, index)
                 this.closestDescendant(this, 'property-shape#' + item.targetID + ', #' + item.targetID + ' property-shape', true)
-                  .each(function (i) {
-                    this.dataGraph = { graph: item.dataset, resource: item.resource } // just put item
+                  .forEach(function (el, i) {
+                    el.dataGraph = { graph: item.dataset, resource: item.resource } // just put item
                   })
               }
               break
             case 'literal':
               if (this.__hideempty & item.value === '') {
-                $(this._workNode).hide()
+                this._workNode.style.display = 'none'
               } else {
                 this.addNode(item.targetID, index)
                 if (this.__hideempty) {
-                  $(this._workNode).show()
+                  this._workNode.style.display = ''
                 }
                 if (Object.prototype.hasOwnProperty.call(this, '_bind') && this._bind != null) {
-                  let itemNode
+                  let itemNodes
                   if (this._bind.indexOf('.') !== 0) {
-                    itemNode = $(this._workNode).children(this._bind + '#' + item.targetID + ', #' + item.targetID + ' ' + this._bind)
+                    itemNodes = this._workNode.querySelectorAll(this._bind + '#' + item.targetID + ', #' + item.targetID + ' ' + this._bind)
                   } else {
-                    itemNode = $(this._workNode).children('#' + item.targetID + this._bind + ', #' + item.targetID + ' ' + this._bind)
+                    itemNodes = this._workNode.querySelectorAll('#' + item.targetID + this._bind + ', #' + item.targetID + ' ' + this._bind)
                   }
 
-                  if (Object.prototype.hasOwnProperty.call(this, '_attr')) { $(itemNode).attr(this._attr, item.value) } else { $(itemNode).text(item.value) }
+                  if (Object.prototype.hasOwnProperty.call(this, '_attr')) {
+                    itemNodes.forEach(function (el, i) {
+                      el.setAttribute(this._attr, item.value)
+                    }.bind(this))
+                  } else {
+                    itemNodes.forEach(function (el, i) {
+                      el.textContent = item.value
+                    })
+                  }
                 } else {
-                  const newNode = $('<span>').attr('id', item.targetID).text(item.value)
-                  $(this).append(newNode)
+                  this.insertAdjacentHTML('afterbegin', '<span id="' + item.targetID + '">' + item.value + '</span>')
                 }
               }
               break
@@ -393,18 +425,39 @@ export class PropertyShape extends LitElement {
   getGraph () {
     const output = cf({ dataset: rdf.dataset() })
     if (this._dataGraph) {
-      const test = output.node(output.namedNode(this._dataGraph.resource))
+      const newNode = output.node(output.namedNode(this._dataGraph.resource))
       // use temp value
-      console.log(this._loadedIDs)
+      // console.log(this._loadedIDs)
       this._loadedIDs.forEach(element => {
-        const val = $('#' + element).html()
-        test.addOut(output.namedNode(this.path), val)
+        let val
+        if (this._attr && this._attr === 'value') {
+          val = document.getElementById(element).value
+        } else if (this._attr) {
+          val = document.getElementById(element).getAttribute(this._attr)
+        } else {
+          val = document.getElementById(element).innerHTML
+        }
+
+        newNode.addOut(output.namedNode(this.path), val)
       })
     } else {
-      const test = output.node(rdf.namedNode(''))
+      const newNode = output.node(rdf.namedNode(''))
+      let val
+      let workNode
+      if (this.children.length === 0) {
+        workNode = this
+      } else {
+        workNode = this.firstElementChild
+      }
+      if (this._attr && this._attr === 'value') {
+        val = workNode.value
+      } else if (this._attr) {
+        val = workNode.getAttribute(this._attr)
+      } else {
+        val = workNode.innerHTML
+      }
 
-      const val = $(this).first().html()
-      test.addOut(output.namedNode(this.path), val)
+      newNode.addOut(output.namedNode(this.path), val)
     }
 
     return output.dataset
@@ -415,21 +468,23 @@ export class PropertyShape extends LitElement {
       return
     }
     this._loadedIDs.forEach(function (element) {
-      $('#' + element).remove()
+      const workNode = document.getElementById(element)
+      if (workNode !== null) {
+        workNode.parentNode.removeChild(workNode)
+      }
     })
 
     // cleanup the left overs
     this.closestDescendant(this, 'property-shape', true)
-      .each(function (i) {
-        this.cleanGraph()
+      .forEach(function (item, i) {
+        item.cleanGraph()
       })
     // why is this working ...
     if (this._loadedIDs.length > 0) {
-      const targetNode = this._original.clone()
-      $(this._workNode).append(targetNode)
+      this._workNode.appendChild(this._original.cloneNode(true))
     }
     if (this.__hideempty) {
-      $(this._workNode).hide()
+      this._workNode.style.display = 'none'
     }
   }
 
@@ -438,37 +493,32 @@ export class PropertyShape extends LitElement {
    */
   closestDescendant (element, selector, findAll) {
     if (!selector || selector === '') {
-      return $()
+      return []
     }
 
     findAll = !!findAll
 
-    const resultSet = $()
+    const resultSet = []
 
-    $(element).each(function () {
-      const $this = $(this)
-
-      // breadth first search for every matched node,
-      // go deeper, until a child was found in the current subtree or the
-      // leave was reached.
-      const queue = []
-      queue.push($this)
-      while (queue.length > 0) {
-        const node = queue.shift()
-        const children = node.children()
-        for (let i = 0; i < children.length; ++i) {
-          const $child = $(children[i])
-          if ($child.is(selector)) {
-            resultSet.push($child[0]) // well, we found one
-            if (!findAll) {
-              return false // stop processing
-            }
-          } else {
-            queue.push($child) // go deeper
+    // breadth first search for every matched node,
+    // go deeper, until a child was found in the current subtree or the
+    // leave was reached.
+    const queue = []
+    queue.push(element)
+    while (queue.length > 0) {
+      const node = queue.shift()
+      for (let i = 0; i < node.children.length; ++i) {
+        const child = node.children[i]
+        if (child.matches(selector)) {
+          resultSet.push(child) // well, we found one
+          if (!findAll) {
+            return false // stop processing
           }
+        } else {
+          queue.push(child) // go deeper
         }
       }
-    })
+    }
     return resultSet
   }
 }
